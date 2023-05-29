@@ -3,6 +3,8 @@ package com.websitebeaver.documentscanner.utils
 import android.content.ContentResolver
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Matrix
+import android.media.ExifInterface
 import android.net.Uri
 import com.websitebeaver.documentscanner.extensions.distance
 import com.websitebeaver.documentscanner.extensions.toOpenCVPoint
@@ -114,8 +116,41 @@ class ImageUtil {
         fileUriString: String,
         contentResolver: ContentResolver
     ): Bitmap {
-        return BitmapFactory.decodeStream(
+        val bitmap = BitmapFactory.decodeStream(
             contentResolver.openInputStream(Uri.parse(fileUriString))
         )
+        return rotateBitmap(fileUriString, bitmap)
+    }
+
+    private fun rotateBitmap(photoPath: String, source: Bitmap) : Bitmap {
+        val ei = ExifInterface(photoPath)
+        val  orientation = ei.getAttributeInt(
+            ExifInterface.TAG_ORIENTATION,
+            ExifInterface.ORIENTATION_UNDEFINED)
+        val bitmap: Bitmap
+        when (orientation) {
+            ExifInterface.ORIENTATION_ROTATE_90 -> {
+                bitmap = rotateImage(source, 90)
+            }
+            ExifInterface.ORIENTATION_ROTATE_180 -> {
+                bitmap = rotateImage(source, 180)
+            }
+            ExifInterface.ORIENTATION_ROTATE_270 -> {
+                bitmap = rotateImage(source, 270)
+            }
+            ExifInterface.ORIENTATION_NORMAL -> {
+                bitmap = source
+            }
+            else -> {
+                bitmap = source
+            }
+        }
+        return bitmap
+    }
+
+    private fun rotateImage(source: Bitmap, angle: Int) : Bitmap {
+        val matrix = Matrix()
+        matrix.postRotate(angle.toFloat())
+        return Bitmap.createBitmap(source,0,0, source.width, source.height, matrix, true)
     }
 }
